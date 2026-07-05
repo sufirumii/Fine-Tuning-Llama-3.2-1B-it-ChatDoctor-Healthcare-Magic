@@ -89,43 +89,45 @@ LlamaTron-RS1-ThinkDoc/
 
 ## Usage
 
-### Loading the Model
-```python
-from transformers import AutoModelForCausalLM, AutoTokenizer
-import torch
+First, authenticate with the Hugging Face Hub:
 
-MODEL_PATH = "path/to/merged_model"
-
-tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
-model = AutoModelForCausalLM.from_pretrained(
-    MODEL_PATH,
-    torch_dtype=torch.bfloat16,
-    device_map="auto"
-)
+```bash
+hf auth login
 ```
 
-### Inference
+**Using a pipeline (high-level helper):**
+
 ```python
+from transformers import pipeline
+
+pipe = pipeline("text-generation", model="Rumiii/LlamaTron-RS1-ThinkDoc")
 messages = [
-    {"role": "system", "content": "If you are a doctor, please answer the medical questions based on the patient's description."},
-    {"role": "user", "content": "I have a severe headache and fever for 3 days. What should I do?"}
+    {"role": "user", "content": "Who are you?"},
 ]
+pipe(messages)
+```
 
-text = tokenizer.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
-input_ids = tokenizer(text, return_tensors="pt").input_ids.to(model.device)
+**Loading the model directly:**
 
-with torch.no_grad():
-    output = model.generate(
-        input_ids,
-        max_new_tokens=400,
-        temperature=0.7,
-        top_p=0.9,
-        do_sample=True,
-        pad_token_id=tokenizer.eos_token_id
-    )
+```python
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
-response = tokenizer.decode(output[0][input_ids.shape[-1]:], skip_special_tokens=True)
-print(response)
+tokenizer = AutoTokenizer.from_pretrained("Rumiii/LlamaTron-RS1-ThinkDoc")
+model = AutoModelForCausalLM.from_pretrained("Rumiii/LlamaTron-RS1-ThinkDoc")
+
+messages = [
+    {"role": "user", "content": "Who are you?"},
+]
+inputs = tokenizer.apply_chat_template(
+    messages,
+    add_generation_prompt=True,
+    tokenize=True,
+    return_dict=True,
+    return_tensors="pt",
+).to(model.device)
+
+outputs = model.generate(**inputs, max_new_tokens=40)
+print(tokenizer.decode(outputs[0][inputs["input_ids"].shape[-1]:]))
 ```
 
 ## Future Work
@@ -161,6 +163,6 @@ For questions or collaboration inquiries, please open an issue in this repositor
 
 ---
 
-**Version**: RS1 (Research Series 1)  
-**Status**: Completed  
+**Version**: RS1 (Research Series 1)
+**Status**: Completed
 **Last Updated**: February 2026
